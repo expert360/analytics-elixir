@@ -59,15 +59,36 @@ defmodule Segment.Analytics do
     |> call
   end
 
-  defp call(api) do
-    Task.start(fn -> post_to_segment(api.method, Poison.encode!(api)) end)
+  def call(api, result_handler \\ nil)
+  def call(api = %Track{}, result_handler),
+    do: start_task(api, result_handler)
+  def call(api = %Identify{}, result_handler),
+    do: start_task(api, result_handler)
+  def call(api = %Screen{}, result_handler),
+    do: start_task(api, result_handler)
+  def call(api = %Alias{}, result_handler),
+    do: start_task(api, result_handler)
+  def call(api = %Group{}, result_handler),
+    do: start_task(api, result_handler)
+  def call(api = %Page{}, result_handler),
+    do: start_task(api, result_handler)
+
+  defp start_task(api, result_handler) do
+    Task.start(fn ->
+      post_to_segment(api.method, Poison.encode!(api), result_handler)
+    end)
   end
 
-  defp post_to_segment(method, body) do
+  defp post_to_segment(method, body, result_handler) do
     method
     |> @adapter.post(body)
-    |> log_result(method, body)
+    |> handle_result(method, body, result_handler)
   end
+
+  defp handle_result(result, method, body, result_handler) when is_function(result_handler),
+    do: result_handler.(result, method, body)
+  defp handle_result(result, method, body, _result_handler),
+    do: log_result(result, method, body)
 
   defp log_result({_, %{status_code: code}}, function, body) when code in 200..299 do
     # success
