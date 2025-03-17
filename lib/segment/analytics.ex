@@ -3,7 +3,7 @@ defmodule Segment.Analytics do
 
   require Logger
 
-  @adapter Application.get_env(:segment, :http_adapter) || Segment.HTTP.HTTPoison
+  @adapter Application.compile_env(:segment, :http_adapter) || Segment.HTTP.HTTPoison
 
   def track(t = %Track{}) do
     call(t)
